@@ -1,0 +1,16 @@
+**/checkpoints/
+**/data/
+**/logs/
+**/wandb/
+**/outputs/
+**/__pycache__/
+
+**/*.slurm
+**/*.err
+**/*.out
+**/*.log
+**/*.pt
+**/*.parquet
+**/*.safetensors
+
+**/test.py
