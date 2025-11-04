@@ -175,3 +175,7 @@ class RolloutConfig(BaseConfig):
     limit_images: Optional[int] = None
 
     skip_tokenizer_init: bool = False
+
+    # Length filtering for GRPO rollouts
+    enable_length_filter: bool = False
+    length_filter_keep_fraction: float = 0.5

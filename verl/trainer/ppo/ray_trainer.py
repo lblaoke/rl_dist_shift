@@ -528,6 +528,61 @@ class RayPPOTrainer:
 
         return gen_batch
 
+    def _filter_rollout_by_length(self, batch: DataProto, keep_fraction: float, metrics: dict) -> DataProto:
+        """Filter rollout samples by response length, keeping the shorter fraction per prompt group.
+
+        For each unique prompt (identified by uid), this method keeps only the shortest
+        `keep_fraction` of responses based on response token count.
+
+        Args:
+            batch (DataProto): The batch containing rollout data with repeated responses
+            keep_fraction (float): Fraction of samples to keep (e.g., 0.5 for shorter half)
+            metrics (dict): Dictionary to update with filtering metrics
+
+        Returns:
+            DataProto: Filtered batch containing only the shorter samples
+        """
+        response_mask = batch.batch["response_mask"]
+        uid = batch.non_tensor_batch["uid"]
+        
+        # Calculate response length for each sample
+        response_lengths = response_mask.sum(dim=-1)  # (batch_size,)
+        
+        # Group samples by uid (original prompt)
+        unique_uids = np.unique(uid)
+        indices_to_keep = []
+        
+        for unique_uid in unique_uids:
+            # Find all samples from this prompt
+            uid_mask = uid == unique_uid
+            uid_indices = np.where(uid_mask)[0]
+            
+            # Get response lengths for this group
+            group_lengths = response_lengths[uid_indices]
+            
+            # Sort by length and keep shortest fraction
+            n_keep = max(1, int(len(uid_indices) * keep_fraction))
+            sorted_indices = torch.argsort(group_lengths)[:n_keep]
+            
+            # Map back to global indices
+            keep_indices = uid_indices[sorted_indices.cpu().numpy()]
+            indices_to_keep.extend(keep_indices)
+        
+        # Sort indices to maintain relative order
+        indices_to_keep = sorted(indices_to_keep)
+        
+        # Filter the batch
+        filtered_batch = batch.select_idxs(indices_to_keep)
+        
+        # Log metrics
+        original_size = len(batch.batch)
+        filtered_size = len(filtered_batch.batch)
+        metrics["rollout/original_batch_size"] = original_size
+        metrics["rollout/filtered_batch_size"] = filtered_size
+        metrics["rollout/filter_ratio"] = filtered_size / original_size if original_size > 0 else 0.0
+        
+        return filtered_batch
+
     def _validate(self):
         data_source_lst = []
         reward_extra_infos_dict: dict[str, list] = defaultdict(list)
@@ -1026,6 +1081,28 @@ class RayPPOTrainer:
 
                     if "response_mask" not in batch.batch.keys():
                         batch.batch["response_mask"] = compute_response_mask(batch)
+                    
+                    # Apply rollout length filter if enabled
+                    if self.config.actor_rollout_ref.rollout.get("enable_length_filter", False):
+                        # # DEBUG: Calculate average response length before filtering
+                        # response_lengths_before = batch.batch["response_mask"].sum(dim=-1).float()
+                        # avg_length_before = response_lengths_before.mean().item()
+                        # print(f"[DEBUG] Step {self.global_steps} - Avg response length BEFORE filter: {avg_length_before:.2f} tokens")
+                        
+                        keep_fraction = self.config.actor_rollout_ref.rollout.get("length_filter_keep_fraction", 0.5)
+                        batch = self._filter_rollout_by_length(batch, keep_fraction, metrics)
+                        
+                        # # DEBUG: Calculate average response length after filtering
+                        # response_lengths_after = batch.batch["response_mask"].sum(dim=-1).float()
+                        # avg_length_after = response_lengths_after.mean().item()
+                        # print(f"[DEBUG] Step {self.global_steps} - Avg response length AFTER filter: {avg_length_after:.2f} tokens")
+                        # print(f"[DEBUG] Step {self.global_steps} - Reduction: {avg_length_before - avg_length_after:.2f} tokens ({(1 - avg_length_after/avg_length_before)*100:.1f}% shorter)")
+                        # print(f"[DEBUG] Step {self.global_steps} - Batch size: {len(response_lengths_before)} -> {len(response_lengths_after)}")
+                        # print(f"[DEBUG] Step {self.global_steps} - Min/Max before: {response_lengths_before.min().item():.0f}/{response_lengths_before.max().item():.0f}")
+                        # print(f"[DEBUG] Step {self.global_steps} - Min/Max after: {response_lengths_after.min().item():.0f}/{response_lengths_after.max().item():.0f}")
+                        # print("-" * 80)
+                        # assert False
+                    
                     # Balance the number of valid tokens across DP ranks.
                     # NOTE: This usually changes the order of data in the `batch`,
                     # which won't affect the advantage calculation (since it's based on uid),

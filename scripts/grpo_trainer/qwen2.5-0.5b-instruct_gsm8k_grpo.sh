@@ -1,5 +1,3 @@
-set -x
-
 data_root="/scratch/gautschi/li4468/data"
 train_files="['$data_root/gsm8k/train.parquet']"
 
@@ -12,7 +10,7 @@ eval_aime25=$data_root/aime25/test.parquet
 test_files="['$eval_gsm8k', '$eval_math500', '$eval_amc23']"
 
 model_name="Qwen/Qwen2.5-0.5B-Instruct"
-rollout_n=16
+rollout_n=4
 
 project_name="rl_dist_shift"
 experiment_name="qwen2.5-0.5b-instruct_gsm8k_grpo_rollout$rollout_n"

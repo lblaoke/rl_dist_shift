@@ -259,6 +259,14 @@ skip_dump_dir: /tmp/rollout_dump
 # When enabled (True), the rollout assume token in token out for generation
 skip_tokenizer_init: True
 
+# Whether to enable length-based filtering of rollout samples.
+# When enabled, keeps only the shortest fraction of responses per prompt (useful for GRPO).
+enable_length_filter: False
+
+# Fraction of samples to keep when length filtering is enabled.
+# For example, 0.5 means keep the shorter 50% of responses for each prompt.
+length_filter_keep_fraction: 0.5
+
 # profile the rollout model in `generate_sequence` 
 profiler:
 

@@ -6,7 +6,7 @@ sinteractive \
     --account=ruqiz \
     --qos=normal \
     --nodes=1 \
-    --ntasks-per-node=8 \
-    --gres=gpu:8 \
+    --ntasks-per-node=2 \
+    --gres=gpu:2 \
     --cpus-per-task=14 \
     --time=0-01:00:00
