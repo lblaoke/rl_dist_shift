@@ -39,6 +39,6 @@ python3 -m verl.trainer.main_ppo \
     trainer.experiment_name='qwen2_5_math_1_5b_numia_math_grpo' \
     trainer.n_gpus_per_node=8 \
     trainer.nnodes=1 \
-    trainer.save_freq=100 \
-    trainer.test_freq=10 \
+    trainer.save_freq=20 \
+    trainer.test_freq=5 \
     trainer.total_epochs=1 $@

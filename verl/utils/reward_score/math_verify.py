@@ -20,7 +20,7 @@ except ImportError:
     print("To use Math-Verify, please install it first by running `pip install math-verify`.")
 
 
-def compute_score(model_output: str, ground_truth: str, timeout_score: float = 0) -> bool:
+def compute_score(model_output: str, ground_truth: str, timeout_score: float = 0) -> dict:
     verify_func = math_metric(
         gold_extraction_target=(LatexExtractionConfig(),),
         pred_extraction_target=(ExprExtractionConfig(), LatexExtractionConfig()),
@@ -36,4 +36,12 @@ def compute_score(model_output: str, ground_truth: str, timeout_score: float = 0
     except TimeoutException:
         ret_score = timeout_score
 
-    return ret_score
+    # Return dict format to match math_dapo.compute_score()
+    reward = 1.0 if ret_score > 0.5 else -1.0
+    acc = ret_score > 0.5
+    
+    return {
+        "score": reward,
+        "acc": acc,
+        "pred": "[INVALID]" if ret_score == 0 else model_output[-100:],  # Store last 100 chars of prediction
+    }

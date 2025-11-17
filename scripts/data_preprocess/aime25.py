@@ -55,7 +55,7 @@ if __name__ == "__main__":
                 "data_source": data_source,
                 "prompt": [{"role": "user", "content": question}],
                 "ability": "math",
-                "reward_model": {"style": "rule", "ground_truth": answer},
+                "reward_model": {"style": "rule", "ground_truth": str(answer)},
                 "extra_info": {"split": split, "index": idx},
             }
             return data

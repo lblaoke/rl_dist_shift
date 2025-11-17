@@ -44,7 +44,7 @@ def default_compute_score(
         from . import gsm8k
 
         res = gsm8k.compute_score(solution_str, ground_truth)
-    elif data_source in ["lighteval/MATH", "DigitalLearningGmbH/MATH-lighteval", "HuggingFaceH4/MATH-500", "ScaleML-RLHF/numina_math", "knoveleng/AMC-23"]:
+    elif data_source in ["lighteval/MATH", "DigitalLearningGmbH/MATH-lighteval", "HuggingFaceH4/MATH-500", "ScaleML-RLHF/numina_math", "numina_math", "knoveleng/AMC-23"]:
         # from . import math_reward
         # res = math_reward.compute_score(solution_str, ground_truth)
         # [Optional] Math-Verify Integration
@@ -57,7 +57,9 @@ def default_compute_score(
     elif data_source in ["math_dapo", "math", "math_dapo_reasoning", "HuggingFaceH4/aime_2024", "MathArena/aime_2025"] or data_source.startswith("aime"):
         from . import math_dapo
 
-        res = math_dapo.compute_score(solution_str, ground_truth)
+        # Use strict_box_verify for AIME datasets since they use \boxed{} format
+        strict_box = data_source in ["HuggingFaceH4/aime_2024", "MathArena/aime_2025"] or data_source.startswith("aime")
+        res = math_dapo.compute_score(solution_str, ground_truth, strict_box_verify=strict_box)
     elif data_source in [
         "numina_aops_forum",
         "numina_synthetic_math",
